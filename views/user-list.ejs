@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>All Users</title>
+</head>
+<body>
+  <h1>📋 Registered Users</h1>
+
+  <table border="1" cellpadding="10">
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+    </tr>
+    <% users.forEach(user => { %>
+      <tr>
+        <td><%= user.name %></td>
+        <td><%= user.email %></td>
+      </tr>
+    <% }) %>
+  </table>
+
+  <br>
+  <a href="/">← Back to Home</a>
+</body>
+</html>

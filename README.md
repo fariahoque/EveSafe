@@ -1,1 +1,1 @@
- 
+EveSafe is a web based safety alert system to keep women aware of safety threats in their surroundings. It allows users to report anonymously, check safety, give rating, register as volunteer and many more. It will basically act as a safety net for women so that they do not have to be scared every time they set their feet outside.

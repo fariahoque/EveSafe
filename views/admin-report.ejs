@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>All Reports</title>
+</head>
+<body>
+  <h1>📋 All Anonymous Reports</h1>
+
+  <% if (reports.length === 0) { %>
+    <p>No reports found.</p>
+  <% } else { %>
+    <ul>
+      <% reports.forEach(report => { %>
+        <li>
+          <strong><%= report.createdAt.toLocaleString() %></strong><br>
+          <strong>Area:</strong> <%= report.area %><br>
+          <strong>Message:</strong> <%= report.message %><br><br>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+
+  <br>
+  <a href="/welcome">Back to Home</a>
+</body>
+</html>

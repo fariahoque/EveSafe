@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register</title>
+</head>
+<body>
+  <h1>Register</h1>
+  <form action="/api/register" method="POST">
+    <input type="text" name="name" placeholder="Full Name" required><br><br>
+    <input type="email" name="email" placeholder="Email" required><br><br>
+    <input type="password" name="password" placeholder="Password" required><br><br>
+    <input type="text" name="area" placeholder="Your Area (e.g. Zone A)" required><br><br>
+    <input type="email" name="emergencyEmail" placeholder="Emergency Contact Email" required><br><br>
+
+    <!-- ✅ Volunteer Checkbox -->
+    <label>
+      <input type="checkbox" name="isVolunteer" value="true">
+      Register as Volunteer
+    </label><br><br>
+
+    <button type="submit">Register</button>
+  </form>
+
+  <br>
+  <a href="/login">Already have an account? Login</a>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Report Submitted</title>
+</head>
+<body>
+  <h1>✅ Thank you!</h1>
+  <p>Your report has been submitted anonymously.</p>
+  <% if (typeof user !== 'undefined') { %>
+  <a href="/welcome">Back to Home</a>
+<% } else { %>
+  <a href="/login">Back to Login</a>
+<% } %>
+
+</body>
+</html>

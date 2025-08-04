@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Welcome</title>
+</head>
+<body>
+  <h1>Welcome, <%= user.name %>!</h1>
+  <p>Email: <%= user.email %></p>
+  <p>Area: <%= user.area %></p>
+
+  <br>
+  <a href="/report">Submit Anonymous Report</a><br>
+  <a href="/my-area-reports">View Reports in My Area</a><br>
+
+  <% if (user.email === 'admin@evesafe.com') { %>
+    <a href="/admin/reports">Admin: View All Reports</a><br>
+  <% } %>
+
+  <br>
+  <a href="/logout">Logout</a>
+</body>
+</html>

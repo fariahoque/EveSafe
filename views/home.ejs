@@ -1,0 +1,10 @@
+<h1>Welcome to EveSafe</h1>
+
+<% if (user) { %>
+  <p>Hello, <%= user.name %>!</p>
+  <a href="/api/welcome">Go to Dashboard</a> |
+  <a href="/api/logout">Logout</a>
+<% } else { %>
+  <a href="/api/register">Register</a> |
+  <a href="/api/login">Login</a>
+<% } %>

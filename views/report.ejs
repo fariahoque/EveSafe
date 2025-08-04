@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Submit Report</title>
+</head>
+<body>
+  <h1>📝 Anonymous Incident Report</h1>
+
+  <form action="/report" method="POST">
+    <label for="area">Enter Area:</label><br>
+    <input type="text" name="area" placeholder="e.g. Market Road" required><br><br>
+
+    <label for="message">Incident Description:</label><br>
+    <textarea name="message" rows="6" cols="50" placeholder="Describe what happened..." required></textarea><br><br>
+
+    <button type="submit">Submit Report</button>
+  </form>
+
+  <br>
+  <a href="/welcome">Back to Home</a>
+</body>
+</html>

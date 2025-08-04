@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reports for <%= area %></title>
+</head>
+<body>
+  <h1>📍 Reports in <%= area %></h1>
+
+  <% if (reports.length === 0) { %>
+    <p>No reports found for your area.</p>
+  <% } else { %>
+    <ul>
+      <% reports.forEach(report => { %>
+        <li>
+          <strong><%= report.createdAt.toLocaleString() %></strong><br>
+          <strong>Area:</strong> <%= report.area %><br>
+          <strong>Message:</strong> <%= report.message %><br><br>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+
+  <br>
+  <a href="/welcome">← Back to Home</a>
+</body>
+</html>
