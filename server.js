@@ -21,8 +21,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'secret_key',
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false }  // Use 'false' in development
+  saveUninitialized: true
 }));
 
 // EJS Setup
@@ -41,48 +40,16 @@ app.get('/', (req, res) => {
   res.redirect('/register');
 });
 
-// Registration page
 app.get('/register', (req, res) => {
   res.render('register', { title: 'Register' });
 });
 
-// Registration success page
 app.get('/register-success', (req, res) => {
   res.render('register-success', { title: 'Registration Successful' });
 });
 
-// Login page
 app.get('/login', (req, res) => {
   res.render('login', { title: 'Login' });
-});
-
-// Login handler
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    let user = await User.findOne({ email });
-    if (!user) return res.status(400).send('Invalid credentials');
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).send('Invalid credentials');
-
-    // Store user info in session
-    req.session.user = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      area: user.area,
-      emergencyEmail: user.emergencyEmail,
-      isVolunteer: user.isVolunteer
-    };
-
-    // Redirect to welcome page after successful login
-    res.redirect('/welcome');
-  } catch (err) {
-    console.error('❌ Login error:', err.message);
-    res.status(500).send('Server error');
-  }
 });
 
 // Welcome page (logged-in users)
@@ -91,7 +58,7 @@ app.get('/welcome', (req, res) => {
   res.render('welcome', { title: 'Welcome', user: req.session.user });
 });
 
-// Logout route
+// Logout
 app.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login'));
 });
@@ -102,20 +69,18 @@ app.get('/report', (req, res) => {
   res.render('report', { title: 'Submit Report' });
 });
 
-// Handle report submission (send SOS email to emergency contact)
+// Handle report submission
 app.post('/report', async (req, res) => {
   try {
     const { message, area } = req.body;
 
-    // Save the report in DB
+    // Save report in DB
     await Report.create({ message, area });
 
-    // Get reportee's name from the session
+    // Send SOS email to emergency contact only
     const userName = req.session.user.name;
-
-    // Send SOS email to emergency contact
     const emergencyEmail = req.session.user.emergencyEmail;
-    sendSOSAlert(emergencyEmail, userName, message, area);
+    await sendSOSAlert(emergencyEmail, userName, message, area);
 
     res.redirect('/report-success');
   } catch (err) {
@@ -138,9 +103,33 @@ app.get('/admin/reports', async (req, res) => {
     return res.status(403).send('Access denied: Admins only');
   }
 
-  const reports = await Report.find().sort({ createdAt: -1 });
-  res.render('admin-reports', { title: 'All Reports', reports });
+  try {
+    const reports = await Report.find().sort({ createdAt: -1 });
+    res.render('admin-reports', {
+      title: 'All Area Reports',
+      reports,
+      user: req.session.user  // optional, in case you need user context in template
+    });
+  } catch (err) {
+    console.error('❌ Error loading admin reports:', err.message);
+    res.status(500).send('Failed to load reports');
+  }
 });
+// Delete a report by ID (admin only)
+app.post('/admin/reports/delete/:id', async (req, res) => {
+  if (!req.session.user || req.session.user.email !== 'admin@evesafe.com') {
+    return res.status(403).send('Access denied');
+  }
+
+  try {
+    await Report.findByIdAndDelete(req.params.id);
+    res.redirect('/admin/reports');
+  } catch (err) {
+    console.error('❌ Failed to delete report:', err.message);
+    res.status(500).send('Error deleting report');
+  }
+});
+
 
 // User view - reports from user's own area
 app.get('/my-area-reports', async (req, res) => {
