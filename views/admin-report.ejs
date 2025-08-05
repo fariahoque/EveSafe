@@ -1,26 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>All Reports</title>
+  <title><%= title %></title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fce4ec;
+      padding: 20px;
+    }
+    h1 {
+      color: #ad1457;
+    }
+    .report {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+    }
+    .report strong {
+      color: #c2185b;
+    }
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      text-decoration: none;
+      color: #ad1457;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h1>📋 All Anonymous Reports</h1>
+  <h1>📋 All Reports (Admin)</h1>
 
   <% if (reports.length === 0) { %>
-    <p>No reports found.</p>
+    <p>No reports submitted yet.</p>
   <% } else { %>
-    <ul>
-      <% reports.forEach(report => { %>
-        <li>
-          <strong><%= report.createdAt.toLocaleString() %></strong><br>
-          <strong>Area:</strong> <%= report.area %><br>
-          <strong>Message:</strong> <%= report.message %><br><br>
-        </li>
-      <% }) %>
-    </ul>
+    <% reports.forEach(report => { %>
+  <div class="report">
+    <p><strong>Area:</strong> <%= report.area %></p>
+    <p><strong>Message:</strong> <%= report.message %></p>
+    <p><strong>Submitted At:</strong> <%= new Date(report.createdAt).toLocaleString() %></p>
+
+    <form action="/admin/reports/delete/<%= report._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this report?');">
+      <button type="submit" style="background-color: #e57373; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
+    </form>
+  </div>
+<% }) %>
+
   <% } %>
 
-  <br>
-  <a href="/welcome">Back to Home</a>
+  <a href="/welcome">⬅ Back to Home</a>
 </body>
 </html>
