@@ -1,22 +1,17 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Welcome</title>
-</head>
-<body>
-  <h1>Welcome, <%= user.name %>!</h1>
-  <p>Email: <%= user.email %></p>
-  <p>Area: <%= user.area %></p>
+<!-- views/welcome.ejs -->
 
-  <br>
-  <a href="/report">Submit Anonymous Report</a><br>
-  <a href="/my-area-reports">View Reports in My Area</a><br>
+<!-- Welcome section -->
+<div class="text-center mb-4">
+  <h1 class="text-pink">Welcome, <%= user.name %>!</h1>
+  <p><strong>Area:</strong> <%= user.area %></p>
+</div>
 
-  <% if (user.email === 'admin@evesafe.com') { %>
-    <a href="/admin/reports">Admin: View All Reports</a><br>
-  <% } %>
-
-  <br>
-  <a href="/logout">Logout</a>
-</body>
-</html>
+<!-- Buttons -->
+<div class="row mt-3">
+  <div class="col-md-6 d-flex justify-content-center mb-2">
+    <a href="/report" class="btn btn-sos w-100">Submit Anonymous Report</a>
+  </div>
+  <div class="col-md-6 d-flex justify-content-center mb-2">
+    <a href="/my-area-reports" class="btn btn-secondary w-100">View Reports in My Area</a>
+  </div>
+</div>
