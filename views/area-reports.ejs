@@ -6,6 +6,47 @@
 <body>
   <h1>📍 Reports in <%= area %></h1>
 
+  <!-- Area Safety Rating (added) -->
+  <div>
+    <h3>Rate Safety in <%= area %></h3>
+    <form action="/ratings" method="POST" style="margin-bottom: 10px;">
+      <input type="hidden" name="area" value="<%= area %>">
+      <label for="score">Your rating:</label>
+      <select id="score" name="score" required>
+        <option value="" selected disabled>Choose rating</option>
+        <option value="1">1 — Very Unsafe</option>
+        <option value="2">2 — Unsafe</option>
+        <option value="3">3 — Neutral</option>
+        <option value="4">4 — Safe</option>
+        <option value="5">5 — Very Safe</option>
+      </select>
+      <button type="submit">Submit Rating</button>
+      <span id="avgText" style="margin-left:8px;color:#555;">Loading average…</span>
+    </form>
+  </div>
+
+  <script>
+    // Fetch and display average rating for this area
+    (function () {
+      fetch('/ratings/avg?area=' + encodeURIComponent('<%= area %>'))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var el = document.getElementById('avgText');
+          if (!el) return;
+          if (d && d.avg != null) {
+            el.textContent = 'Average: ' + d.avg + ' / 5 (' + d.count + ' rating' + (d.count === 1 ? '' : 's') + ')';
+          } else {
+            el.textContent = 'No ratings yet';
+          }
+        })
+        .catch(function () {
+          var el = document.getElementById('avgText');
+          if (el) el.textContent = 'Average: N/A';
+        });
+    })();
+  </script>
+  <!-- End Area Safety Rating -->
+
   <% if (reports.length === 0) { %>
     <p>No reports found for your area.</p>
   <% } else { %>
