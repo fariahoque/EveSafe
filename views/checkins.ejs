@@ -1,0 +1,41 @@
+<!-- views/checkins.ejs -->
+
+<div class="container my-4">
+  <div class="text-center mb-4">
+    <h2 class="text-pink">Safety Check Timer</h2>
+    <p><strong>Hello, <%= user.name %></strong> — set a timer and we’ll alert your emergency contact if you don’t check in on time.</p>
+  </div>
+
+  <form action="/checkins" method="POST" class="row g-2 justify-content-center mb-4">
+    <div class="col-md-4">
+      <input type="number" name="dueMinutes" min="1" class="form-control" placeholder="Minutes until check-in" required>
+    </div>
+    <div class="col-md-2 d-grid">
+      <button type="submit" class="btn btn-secondary w-100">Start Timer</button>
+    </div>
+  </form>
+
+  <div class="card shadow-sm">
+    <div class="card-header bg-white">
+      <strong>Your Timers</strong>
+    </div>
+    <ul class="list-group list-group-flush">
+      <% if (!checkins || checkins.length === 0) { %>
+        <li class="list-group-item text-muted">No timers yet. Start one above.</li>
+      <% } %>
+      <% (checkins || []).forEach(c => { %>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div><strong>Due:</strong> <%= new Date(c.dueAt).toLocaleString() %></div>
+            <div><strong>Status:</strong> <%= c.resolved ? 'Resolved' : 'Pending' %></div>
+          </div>
+          <% if (!c.resolved) { %>
+            <form action="/checkins/<%= c._id %>/resolve" method="POST">
+              <button class="btn btn-outline-dark">I’m Safe</button>
+            </form>
+          <% } %>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+</div>
