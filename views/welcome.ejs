@@ -1,5 +1,6 @@
 <!-- views/welcome.ejs -->
 
+
 <!-- Welcome section -->
 <div class="text-center mb-4">
   <h1 class="text-pink">Welcome, <%= user.name %>!</h1>
@@ -8,10 +9,39 @@
 
 <!-- Buttons -->
 <div class="row mt-3">
-  <div class="col-md-6 d-flex justify-content-center mb-2">
+  <div class="col-md-4 d-flex justify-content-center mb-2">
     <a href="/report" class="btn btn-sos w-100">Submit Anonymous Report</a>
   </div>
-  <div class="col-md-6 d-flex justify-content-center mb-2">
+  <div class="col-md-4 d-flex justify-content-center mb-2">
     <a href="/my-area-reports" class="btn btn-secondary w-100">View Reports in My Area</a>
   </div>
 </div>
+<!-- Only show to admin -->
+<% if (user && user.email === 'admin@evesafe.com') { %>
+  <div class="row mt-3">
+    <div class="col-md-4 d-flex justify-content-center mb-2">
+      <a href="/admin/reports" class="btn btn-outline-dark w-100">Admin: All Reports</a>
+    </div>
+  </div>
+<% } %>
+
+<!-- Safety Check Timer -->
+<div class="row mt-3">
+  <div class="col-md-4 d-flex justify-content-center mb-2">
+    <a href="/checkins" class="btn btn-secondary w-100">Safety Check Timer</a>
+  </div>
+</div>
+<div class="row mt-3">
+  <div class="col-md-4 d-flex justify-content-center mb-2">
+    <a href="/volunteers" class="btn btn-secondary w-100">Volunteer Network</a>
+  </div>
+</div>
+<!-- One‑Click SOS -->
+<div class="row mt-3">
+  <div class="col-md-4 d-flex justify-content-center mb-2">
+    <form action="/sos" method="POST" onsubmit="return confirm('Send SOS now?');" class="w-100">
+      <button class="btn btn-sos w-100" type="submit">Send SOS Now</button>
+    </form>
+  </div>
+</div>
+
