@@ -2,54 +2,52 @@
 <html>
 <head>
   <title><%= title %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #fce4ec;
-      padding: 20px;
-    }
-    h1 {
-      color: #ad1457;
-    }
-    .report {
-      background-color: #fff;
-      border: 1px solid #ddd;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 8px;
-    }
-    .report strong {
-      color: #c2185b;
-    }
-    a {
-      display: inline-block;
-      margin-top: 20px;
-      text-decoration: none;
-      color: #ad1457;
-      font-weight: bold;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+    th { background: #f4f4f4; text-align: left; }
+    .danger { color: #b00020; }
+    .actions { white-space: nowrap; }
+    .btn-delete { background:#b00020; color:#fff; border:none; padding:6px 10px; cursor:pointer; }
+    .btn-delete:hover { opacity:.9; }
   </style>
 </head>
 <body>
-  <h1>📋 All Reports (Admin)</h1>
+  <h1>🛠️ <%= title %></h1>
 
-  <% if (reports.length === 0) { %>
-    <p>No reports submitted yet.</p>
+  <% if (!reports || reports.length === 0) { %>
+    <p>No reports found.</p>
   <% } else { %>
-    <% reports.forEach(report => { %>
-  <div class="report">
-    <p><strong>Area:</strong> <%= report.area %></p>
-    <p><strong>Message:</strong> <%= report.message %></p>
-    <p><strong>Submitted At:</strong> <%= new Date(report.createdAt).toLocaleString() %></p>
-
-    <form action="/admin/reports/delete/<%= report._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this report?');">
-      <button type="submit" style="background-color: #e57373; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
-    </form>
-  </div>
-<% }) %>
-
+    <table>
+      <thead>
+        <tr>
+          <th>Created At</th>
+          <th>Area</th>
+          <th>Message</th>
+          <th class="actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% reports.forEach(r => { %>
+          <tr>
+            <td><%= new Date(r.createdAt).toLocaleString() %></td>
+            <td><%= r.area %></td>
+            <td><pre style="margin:0;white-space:pre-wrap;"><%= r.message %></pre></td>
+            <td class="actions">
+              <form action="/admin/reports/delete/<%= r._id %>" method="POST" onsubmit="return confirm('Delete this report?');">
+                <button class="btn-delete" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
   <% } %>
 
-  <a href="/welcome">⬅ Back to Home</a>
+  <p style="margin-top:16px;"><a href="/welcome">← Back to Dashboard</a></p>
+<p><a href="/volunteers/admin">Manage Volunteers</a></p>
+
 </body>
 </html>
