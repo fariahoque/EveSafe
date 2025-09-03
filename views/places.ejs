@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Safe Check-in Points</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    #map { height: 70vh; border-radius: 12px; }
+    .form-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:10px 0; }
+    .form-row > * { flex:1; min-width:200px; }
+    .legend { font-size: 14px; margin: 8px 0; }
+    .key { display:inline-flex; align-items:center; margin-right:14px; }
+    .dot { width:12px; height:12px; border-radius:50%; display:inline-block; margin-right:6px; border:1px solid #0001; }
+    .dot.police { background:#1e90ff; }    /* Police = blue */
+    .dot.hospital { background:#e74c3c; }  /* Hospital = red */
+    .note { color:#666; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h2>Safe Check-in Points (Police & Hospitals)</h2>
+
+  <div class="form-row">
+    <label>
+      Area:
+      <select id="areaSelect">
+        <option value="">— Choose area —</option>
+        <option value="Banasree">Banasree</option>
+        <option value="Bashabo">Bashabo</option>
+        <option value="Dhanmondi">Dhanmondi</option>
+        <option value="Gulshan">Gulshan</option>
+        <option value="Banani">Banani</option>
+        <option value="Mirpur">Mirpur</option>
+        <option value="Uttara">Uttara</option>
+        <option value="Motijheel">Motijheel</option>
+      </select>
+    </label>
+
+    <button id="useLocBtn">📍 Use my location</button>
+
+    <label>
+      Radius (km):
+      <select id="radiusKm">
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+        <option value="5">5</option>
+      </select>
+    </label>
+
+    <button id="loadByAreaBtn">Load by Area</button>
+    <button id="loadNearbyBtn">Load Nearby (Dhaka)</button>
+  </div>
+
+  <div class="legend">
+    <span class="key"><span class="dot police"></span>Police</span>
+    <span class="key"><span class="dot hospital"></span>Hospital</span>
+  </div>
+
+  <div id="map"></div>
+  <p id="status" class="note">Pick an area and click “Load by Area”, or click “Use my location”.</p>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // --- Map setup ---
+    const map = L.map('map').setView([23.777, 90.399], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+    const liveLayer = L.layerGroup().addTo(map);
+
+    const statusEl = document.getElementById('status');
+    const areaSel = document.getElementById('areaSelect');
+    const radiusKmSel = document.getElementById('radiusKm');
+
+    // --- Area centers (approximate) ---
+    const AREA_CENTER = {
+      Banasree:  [23.7639, 90.4294],
+      Bashabo:   [23.7416, 90.4218],
+      Dhanmondi: [23.7465, 90.3760],
+      Gulshan:   [23.7925, 90.4078],
+      Banani:    [23.7936, 90.4043],
+      Mirpur:    [23.8223, 90.3654],
+      Uttara:    [23.8747, 90.3984],
+      Motijheel: [23.7324, 90.4178],
+    };
+
+    // Pre-select dropdown to user's area if provided by server
+    (function preselectUserArea(){
+      const userArea = "<%= (user && user.area) ? user.area : '' %>";
+      if (userArea && AREA_CENTER[userArea]) {
+        areaSel.value = userArea;
+      }
+    })();
+
+    // --- Helpers ---
+    function toMeters(km) { return Math.max(200, Math.floor(Number(km) * 1000)); }
+
+    function buildOverpassQuery(lat, lng, radiusMeters) {
+      return `
+        [out:json][timeout:25];
+        (
+          node["amenity"="police"](around:${radiusMeters},${lat},${lng});
+          way["amenity"="police"](around:${radiusMeters},${lat},${lng});
+          relation["amenity"="police"](around:${radiusMeters},${lat},${lng});
+          node["amenity"="hospital"](around:${radiusMeters},${lat},${lng});
+          way["amenity"="hospital"](around:${radiusMeters},${lat},${lng});
+          relation["amenity"="hospital"](around:${radiusMeters},${lat},${lng});
+        );
+        out center;`;
+    }
+
+    function featureLatLng(el) {
+      if (el.type === 'node') return [el.lat, el.lon];
+      if ((el.type === 'way' || el.type === 'relation') && el.center) return [el.center.lat, el.center.lon];
+      return null;
+    }
+
+    function markerColor(tags) {
+      if (tags?.amenity === 'police') return '#1e90ff';
+      if (tags?.amenity === 'hospital') return '#e74c3c';
+      return '#666';
+    }
+
+    async function loadNearby(lat, lng) {
+      liveLayer.clearLayers();
+      const radiusMeters = toMeters(radiusKmSel.value);
+      statusEl.textContent = 'Loading nearby police & hospitals…';
+
+      try {
+        const res = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+          body: 'data=' + encodeURIComponent(buildOverpassQuery(lat, lng, radiusMeters))
+        });
+        const data = await res.json();
+        const elements = data.elements || [];
+
+        let count = 0;
+        elements.forEach(el => {
+          const ll = featureLatLng(el);
+          if (!ll) return;
+          const color = markerColor(el.tags);
+          const m = L.circleMarker(ll, {
+            radius: 7, color, fillColor: color, fillOpacity: .88, weight: 2
+          }).addTo(liveLayer);
+          const name = (el.tags && (el.tags.name || el.tags['name:en'])) || 'Unnamed';
+          const type = el.tags?.amenity || 'amenity';
+          m.bindPopup(`<strong>${name}</strong><br>${type}`);
+          count++;
+        });
+
+        if (count) {
+          const group = L.featureGroup(liveLayer.getLayers());
+          map.fitBounds(group.getBounds().pad(0.2));
+          statusEl.textContent = `Found ${count} safe check-in point(s).`;
+        } else {
+          statusEl.textContent = 'No places found here. Try a larger radius.';
+        }
+      } catch (e) {
+        console.error('Overpass error:', e);
+        statusEl.textContent = 'Failed to load nearby places. Please try again.';
+      }
+    }
+
+    // --- Events ---
+    // Load based on dropdown area
+    document.getElementById('loadByAreaBtn').addEventListener('click', () => {
+      const area = areaSel.value;
+      if (!area || !AREA_CENTER[area]) {
+        statusEl.textContent = 'Please pick an area first.';
+        return;
+      }
+      const [lat, lng] = AREA_CENTER[area];
+      map.setView([lat, lng], 14);
+      loadNearby(lat, lng);
+    });
+
+    // Use my location → auto-fill dropdown to best match + load
+    document.getElementById('useLocBtn').addEventListener('click', () => {
+      if (!navigator.geolocation) { statusEl.textContent = 'Geolocation not supported.'; return; }
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        map.setView([lat, lng], 14);
+        loadNearby(lat, lng);
+
+        // Reverse geocode to match dropdown (best effort)
+        try {
+          const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+          const r = await fetch(url, { headers: { 'Accept':'application/json','User-Agent':'EveSafe/1.0' }});
+          const d = await r.json();
+          const guess =
+            d.address?.suburb ||
+            d.address?.neighbourhood ||
+            d.address?.city_district ||
+            d.address?.city || '';
+          if (guess) {
+            const low = guess.toLowerCase();
+            for (let i = 0; i < areaSel.options.length; i++) {
+              const v = areaSel.options[i].value.toLowerCase();
+              if (!v) continue;
+              if (low === v || low.includes(v) || v.includes(low)) {
+                areaSel.selectedIndex = i;
+                break;
+              }
+            }
+          }
+        } catch(_) { /* ignore */ }
+      }, () => {
+        statusEl.textContent = 'Unable to get your location.';
+      });
+    });
+
+    // Fallback button: load around Dhaka center
+    document.getElementById('loadNearbyBtn').addEventListener('click', () => {
+      loadNearby(23.777, 90.399);
+    });
+  </script>
+</body>
+</html>
