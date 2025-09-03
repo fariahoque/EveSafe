@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Volunteers</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+    th { background: #f4f4f4; text-align: left; }
+    .pill { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .ok { background: #d1fae5; color: #065f46; }
+    .warn { background: #fde68a; color: #92400e; }
+    .row-actions { white-space: nowrap; }
+    .btn { padding: 6px 10px; border: none; cursor: pointer; }
+    .btn-verify { background: #2563eb; color: #fff; }
+    .btn-unverify { background: #6b7280; color: #fff; }
+  </style>
+</head>
+<body>
+  <h1>🧑‍🤝‍🧑 Volunteers</h1>
+
+  <% if (!rows || rows.length === 0) { %>
+    <p>No volunteers yet.</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th>Created</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Area</th>
+          <th>Status</th>
+          <th class="row-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach(v => { %>
+          <tr>
+            <td><%= new Date(v.createdAt).toLocaleString() %></td>
+            <td><%= v.name %></td>
+            <td><%= v.email %></td>
+            <td><%= v.area %></td>
+            <td>
+              <% if (v.verified) { %>
+                <span class="pill ok">Verified</span>
+              <% } else { %>
+                <span class="pill warn">Pending</span>
+              <% } %>
+            </td>
+            <td class="row-actions">
+              <% if (v.verified) { %>
+                <form action="/volunteers/admin/<%= v._id %>/unverify" method="POST" style="display:inline;">
+                  <button class="btn btn-unverify" type="submit">Unverify</button>
+                </form>
+              <% } else { %>
+                <form action="/volunteers/admin/<%= v._id %>/verify" method="POST" style="display:inline;">
+                  <button class="btn btn-verify" type="submit">Verify</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <p style="margin-top: 12px;"><a href="/admin/reports">← Back to Admin</a></p>
+</body>
+</html>

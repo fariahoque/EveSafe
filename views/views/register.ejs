@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register</title>
+</head>
+<body>
+  <h1>Register</h1>
+  <form action="/api/register" method="POST">
+    <input type="text" name="name" placeholder="Full Name" required><br><br>
+    <input type="email" name="email" placeholder="Email" required><br><br>
+    <input type="password" name="password" placeholder="Password" required><br><br>
+
+    <!-- 🔹 Area dropdown instead of free text -->
+    <label for="area">Select Your Area:</label><br>
+    <select name="area" id="area" required>
+      <option value="">-- Select Area --</option>
+      <option value="Banasree">Banasree</option>
+      <option value="Bashabo">Bashabo</option>
+      <option value="Dhanmondi">Dhanmondi</option>
+      <option value="Gulshan">Gulshan</option>
+      <option value="Banani">Banani</option>
+      <option value="Mirpur">Mirpur</option>
+      <option value="Uttara">Uttara</option>
+      <option value="Motijheel">Motijheel</option>
+    </select>
+    <br><br>
+
+    <input type="email" name="emergencyEmail" placeholder="Emergency Contact Email" required><br><br>
+    
+    <button type="submit">Register</button>
+  </form>
+
+  <br>
+  <a href="/login">Already have an account? Login</a>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Safe Route Finder</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    #map { height: 70vh; border-radius: 12px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Simple Route Finder (with Alternatives)</h2>
+
+  <form id="routeForm">
+    <label>From:</label>
+    <select id="from" required>
+      <option value="">-- Select Area --</option>
+      <option value="Banasree">Banasree</option>
+      <option value="Bashabo">Bashabo</option>
+      <option value="Dhanmondi">Dhanmondi</option>
+      <option value="Gulshan">Gulshan</option>
+      <option value="Banani">Banani</option>
+      <option value="Mirpur">Mirpur</option>
+      <option value="Uttara">Uttara</option>
+      <option value="Motijheel">Motijheel</option>
+    </select>
+    <br><br>
+
+    <label>To:</label>
+    <select id="to" required>
+      <option value="">-- Select Area --</option>
+      <option value="Banasree">Banasree</option>
+      <option value="Bashabo">Bashabo</option>
+      <option value="Dhanmondi">Dhanmondi</option>
+      <option value="Gulshan">Gulshan</option>
+      <option value="Banani">Banani</option>
+      <option value="Mirpur">Mirpur</option>
+      <option value="Uttara">Uttara</option>
+      <option value="Motijheel">Motijheel</option>
+    </select>
+    <br><br>
+
+    <button type="submit">Find Routes</button>
+  </form>
+
+  <div id="map"></div>
+  <p id="summary" class="mt-2"></p>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([23.777, 90.399], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let routeLayers = [];
+
+    // 🔹 Fixed coordinates for each area
+    const areaCoords = {
+      "Banasree": [23.7639, 90.4294],
+      "Bashabo": [23.7416, 90.4218],
+      "Dhanmondi": [23.7465, 90.3760],
+      "Gulshan": [23.7925, 90.4078],
+      "Banani": [23.7936, 90.4043],
+      "Mirpur": [23.8223, 90.3654],
+      "Uttara": [23.8747, 90.3984],
+      "Motijheel": [23.7324, 90.4178]
+    };
+
+    // colors for up to 3 alternative routes
+    const colors = ["blue", "green", "orange"];
+
+    document.getElementById('routeForm').onsubmit = async (e) => {
+      e.preventDefault();
+
+      const fromArea = document.getElementById('from').value;
+      const toArea   = document.getElementById('to').value;
+      const summary  = document.getElementById('summary');
+
+      if (!fromArea || !toArea) {
+        alert("Please select both areas");
+        return;
+      }
+
+      const [fLat, fLng] = areaCoords[fromArea];
+      const [tLat, tLng] = areaCoords[toArea];
+
+      // OSRM requires lng,lat
+      const url = `https://router.project-osrm.org/route/v1/driving/${fLng},${fLat};${tLng},${tLat}?overview=full&geometries=geojson&alternatives=true`;
+
+      console.log("Fetching:", url);
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!data.routes || !data.routes.length) {
+        alert("No routes found");
+        return;
+      }
+
+      // clear old routes
+      routeLayers.forEach(layer => map.removeLayer(layer));
+      routeLayers = [];
+
+      // show all alternatives
+      data.routes.forEach((r, i) => {
+        const coords = r.geometry;
+        const dist = (r.distance / 1000).toFixed(1); // km
+        const time = (r.duration / 60).toFixed(1);   // minutes
+
+        const color = colors[i % colors.length];
+
+        const layer = L.geoJSON(coords, {
+          style: { color, weight: 5 }
+        }).addTo(map)
+          .bindPopup(`Option ${i+1}: ${dist} km, ${time} min`);
+
+        routeLayers.push(layer);
+
+        if (i === 0) {
+          map.fitBounds(layer.getBounds().pad(0.15));
+        }
+      });
+
+      summary.textContent = `Showing ${data.routes.length} route option(s). Click on a route line for details.`;
+    };
+  </script>
+</body>
+</html>

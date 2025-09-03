@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= title %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <h1>🤝 <%= title %></h1>
+
+  <p>Hello, <strong><%= user.name %></strong>. Your area: <strong><%= user.area %></strong></p>
+
+  <% if (!me) { %>
+    <p>You are not a volunteer yet.</p>
+    <form action="/volunteers/apply" method="POST">
+      <button type="submit">Apply as Volunteer</button>
+    </form>
+  <% } else { %>
+    <p>Status: <strong><%= me.verified ? 'Verified' : 'Pending approval' %></strong></p>
+    <form action="/volunteers/cancel" method="POST" onsubmit="return confirm('Cancel your volunteer status?');">
+      <button type="submit">Cancel Volunteer Status</button>
+    </form>
+  <% } %>
+
+  <p style="margin-top: 12px;"><a href="/welcome">← Back to Dashboard</a></p>
+</body>
+</html>

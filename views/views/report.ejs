@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Submit Report</title>
+</head>
+<body>
+  <h1>📝 Anonymous Incident Report</h1>
+
+  <form action="/report" method="POST">
+    <!-- Incident details -->
+    <label for="message">Incident Details:</label><br>
+    <textarea name="message" id="message" rows="4" cols="50" placeholder="Describe the incident..." required></textarea>
+    <br><br>
+
+    <!-- Area dropdown -->
+    <label for="area">Select Area:</label><br>
+    <select name="area" id="area" required>
+      <option value="">-- Select Area --</option>
+      <option value="Banasree">Banasree</option>
+      <option value="Bashabo">Bashabo</option>
+      <option value="Dhanmondi">Dhanmondi</option>
+      <option value="Gulshan">Gulshan</option>
+      <option value="Banani">Banani</option>
+      <option value="Mirpur">Mirpur</option>
+      <option value="Uttara">Uttara</option>
+      <option value="Motijheel">Motijheel</option>
+    </select>
+    <br><br>
+
+    <!-- Use my location button -->
+    <button type="button" id="locBtn">📍 Use my location</button>
+    <br><br>
+
+    <!-- Hidden lat/lng fields -->
+    <input type="hidden" name="lat" id="lat">
+    <input type="hidden" name="lng" id="lng">
+
+    <button type="submit">Submit Report</button>
+  </form>
+
+  <br>
+  <a href="/welcome">Back to Home</a>
+
+  <script>
+    document.getElementById('locBtn').addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        console.warn("Geolocation is not supported by your browser");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        // Save to hidden inputs
+        document.getElementById('lat').value = lat;
+        document.getElementById('lng').value = lng;
+
+        // Reverse geocoding API
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+
+        try {
+          const res = await fetch(url, {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'EveSafe/1.0 (educational project)'
+            }
+          });
+          const data = await res.json();
+
+          // Extract likely area name
+          const areaName =
+            data.address?.suburb ||
+            data.address?.neighbourhood ||
+            data.address?.city_district ||
+            data.address?.city ||
+            "";
+
+          if (!areaName) return; // nothing detected
+
+          // Try to match dropdown option (skip placeholder at index 0)
+          const select = document.getElementById('area');
+          const name = areaName.toLowerCase();
+
+          for (let i = 1; i < select.options.length; i++) {
+            const val = select.options[i].value.toLowerCase();
+            if (name === val || name.includes(val) || val.includes(name)) {
+              select.selectedIndex = i; // auto-select area
+              break;
+            }
+          }
+        } catch (err) {
+          console.error("Reverse geocode failed:", err);
+        }
+      }, () => {
+        console.warn("Unable to retrieve your location");
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Welcome</title>
+  <link rel="stylesheet" href="/css/girly.css">
+</head>
+<body>
+  <div class="banner-hero">
+    <img src="/img/background.jpg" alt="Banner group photo">
+    <div class="banner-text">
+      <h1>Welcome, <%= user.name %> ✨</h1>
+      <p>Your Safety Keeper 💕 Always here for you.</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="title">Welcome, <%= user.name %> ✨</div>
+        <div class="subtitle">Your Safety Keeper 💕 Always here for you.</div>
+
+      </div>
+      <div class="badge">Area: <%= user.area %></div>
+    </div>
+
+    <div id="dangerBanner"></div>
+
+    <div class="grid">
+      <!-- Submit Anonymous Report -->
+      <div class="col-4">
+        <div class="card">
+          <img src="/img/submit-anonymous-report.avif" alt="Submit report">
+          <div class="card-body">
+            <h3>Submit Anonymous Report</h3>
+            <p>Share any incident you witnessed or faced. Your identity stays private.</p>
+            <div class="actions">
+              <a class="btn btn-primary w-100" href="/report">Report Now</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports in My Area -->
+      <div class="col-4">
+        <div class="card">
+          <img src="/img/reports-in-my-area.jpg" alt="Reports in area">
+          <div class="card-body">
+            <h3>Reports in My Area</h3>
+            <p>See what’s been reported recently around <strong><%= user.area %></strong>.</p>
+            <div class="actions">
+              <a class="btn btn-secondary w-100" href="/my-area-reports">View Reports</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Safety Check Timer -->
+      <div class="col-4">
+        <div class="card">
+          <img src="/img/safety-check-timer.jpg" alt="Safety check timer">
+          <div class="card-body">
+            <h3>Safety Check Timer</h3>
+            <p>Set a timer to confirm you’re safe. We’ll alert your contact if you miss it.</p>
+            <div class="actions">
+              <a class="btn btn-secondary w-100" href="/checkins">Open Timer</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Safe Check-in Points -->
+      <div class="col-4">
+        <div class="card">
+          <img src="/img/safe-checkin-points.webp" alt="Safe check-in points">
+          <div class="card-body">
+            <h3>Safe Check-in Points</h3>
+            <p>Find nearby police stations and hospitals to head to if you need help.</p>
+            <div class="actions">
+              <a class="btn btn-secondary w-100" href="/places">View Map</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Safe Route Finder -->
+      <div class="col-4">
+        <div class="card">
+          <img src="/img/safe-route-finder.webp" alt="Safe route finder">
+          <div class="card-body">
+            <h3>Safe Route Finder</h3>
+            <p>Pick safer paths and avoid hot zones while traveling in Dhaka.</p>
+            <div class="actions">
+              <a class="btn btn-secondary w-100" href="/safe-route">Find Route</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Volunteer Network -->
+      <div class="col-4">
+        <div class="card">
+          <img src="/img/volunteer-network.avif" alt="Volunteer network">
+          <div class="card-body">
+            <h3>Volunteer Network</h3>
+            <p>Verified helpers in your area who can check on you or offer guidance.</p>
+            <div class="actions">
+              <a class="btn btn-secondary w-100" href="/volunteers">Explore Volunteers</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- One-Click SOS -->
+      <div class="col-4">
+        <div class="card">
+          <img src="/img/one-click-sos.jpg" alt="SOS character">
+          <div class="card-body">
+            <h3>One-Click SOS</h3>
+            <p>Instantly alert your emergency contact and nearby volunteers.</p>
+            <div class="actions">
+              <button id="sosBtn" class="btn btn-sos w-100" type="button">Send SOS Now</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <% if (user && user.email === 'admin@evesafe.com') { %>
+      <!-- Admin -->
+      <div class="col-4">
+        <div class="card">
+          <img src="/img/reports-in-my-area.jpg" alt="Admin analytics">
+          <div class="card-body">
+            <h3>Admin: All Reports</h3>
+            <p>Moderate and manage reports from all areas.</p>
+            <div class="actions">
+              <a class="btn btn-outline w-100" href="/admin/reports">Open Admin</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </div>
+
+  <script>
+    // SOS
+    let sosInFlight=false,lastSOS=0;
+    async function sendSOS(){
+      const now=Date.now(); if(sosInFlight||now-lastSOS<5000) return;
+      sosInFlight=true; const btn=document.getElementById('sosBtn'); const old=btn.innerText;
+      btn.disabled=true; btn.innerText='Sending...';
+      try{ await fetch('/sos',{method:'POST'}); lastSOS=now; btn.innerText='SOS Sent';
+           setTimeout(()=>{btn.innerText=old;btn.disabled=false;},1800);}
+      catch{ btn.innerText='Failed — try again';
+             setTimeout(()=>{btn.innerText=old;btn.disabled=false;},2000);}
+      finally{ sosInFlight=false; }
+    }
+    document.getElementById('sosBtn')?.addEventListener('click',sendSOS);
+
+    // Danger banner
+    (function(){
+      const area = <%- JSON.stringify(user.area) %>;
+      fetch('/danger/area?name='+encodeURIComponent(area))
+        .then(r=>r.json()).then(r=>{
+          if(!r||!r.level) return;
+          if(r.level==='high'||r.level==='moderate'){
+            const el=document.getElementById('dangerBanner');
+            const txt = r.level==='high'
+              ? `⚠️ High risk in ${r.area}. Reports: ${r.recentReports}. Avg rating: ${r.avgRating}/5. Stay alert.`
+              : `⚠️ Moderate risk in ${r.area}. Reports: ${r.recentReports}. Avg rating: ${r.avgRating}/5.`;
+            el.textContent=txt; el.style.display='block';
+          }
+        }).catch(()=>{});
+    })();
+  </script>
+  
+</body>
+</html>

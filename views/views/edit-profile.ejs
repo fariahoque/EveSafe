@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Profile</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Edit Your Profile</h2>
+    <form action="/edit-profile" method="POST">
+      <input type="text" name="name" value="<%= user.name %>" placeholder="Name" required><br><br>
+      <input type="email" name="email" value="<%= user.email %>" placeholder="Email" required><br><br>
+      <input type="text" name="area" value="<%= user.area %>" placeholder="Area" required><br><br>
+      <input type="email" name="emergencyEmail" value="<%= user.emergencyEmail %>" placeholder="Emergency Email" required><br><br>
+      <input type="password" name="password" placeholder="New Password (optional)"><br><br>
+      <button type="submit">Update</button>
+    </form>
+    <br>
+    <a href="/welcome">Cancel</a>
+  </div>
+</body>
+</html>

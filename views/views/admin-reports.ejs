@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= title %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+    th { background: #f4f4f4; text-align: left; }
+    .danger { color: #b00020; }
+    .actions { white-space: nowrap; }
+    .btn-delete { background:#b00020; color:#fff; border:none; padding:6px 10px; cursor:pointer; }
+    .btn-delete:hover { opacity:.9; }
+  </style>
+</head>
+<body>
+  <h1>🛠️ <%= title %></h1>
+
+  <% if (!reports || reports.length === 0) { %>
+    <p>No reports found.</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th>Created At</th>
+          <th>Area</th>
+          <th>Message</th>
+          <th class="actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% reports.forEach(r => { %>
+          <tr>
+            <td><%= new Date(r.createdAt).toLocaleString() %></td>
+            <td><%= r.area %></td>
+            <td><pre style="margin:0;white-space:pre-wrap;"><%= r.message %></pre></td>
+            <td class="actions">
+              <form action="/admin/reports/delete/<%= r._id %>" method="POST" onsubmit="return confirm('Delete this report?');">
+                <button class="btn-delete" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <p style="margin-top:16px;"><a href="/welcome">← Back to Dashboard</a></p>
+<p><a href="/volunteers/admin">Manage Volunteers</a></p>
+
+</body>
+</html>
