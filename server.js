@@ -8,17 +8,19 @@ const Report = require('./models/report');
 const sendSOSAlert = require('./mailer'); // for sending emergency emails
 require('dotenv').config();
 const mongoose = require('mongoose');
-
-// ✅ NEW: persistent session store
-const MongoStore = require('connect-mongo');
-
+    
 const Volunteer = require('./models/volunteer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
+const routeApi = require('./routes/route');
+app.use('/api/route', routeApi);
+const placesRoutes = require('./routes/places');
+app.use('/places', placesRoutes);
 app.set('trust proxy', 1);
 // your session config can stay as-is; defaults are fine for local dev
+
+
 
 // Connect to MongoDB
 connectDB();
@@ -27,24 +29,11 @@ connectDB();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// ✅ REPLACED: session store now uses MongoDB (prevents losing login on server restart)
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'secret_key',
-    resave: false,
-    saveUninitialized: false, // better with a real store
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGO_URI,
-      collectionName: 'sessions',
-      ttl: 60 * 60 * 24 * 7, // 7 days
-    }),
-    cookie: {
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production', // set true behind HTTPS in prod
-    },
-  })
-);
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'secret_key',
+  resave: false,
+  saveUninitialized: true
+}));
 
 // EJS Setup
 app.set('view engine', 'ejs');
@@ -56,31 +45,19 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // API routes
 app.use('/api', accountRoutes);
-
 // Safety Check Timer routes
 const checkinRoutes = require('./routes/checkin');
 app.use('/checkins', checkinRoutes);
-
 const ratingRoutes = require('./routes/ratings');
 app.use('/ratings', ratingRoutes);
-
 // Volunteers routes
 const volunteerRoutes = require('./routes/volunteers');
 app.use('/volunteers', volunteerRoutes);
-
 const sosRoutes = require('./routes/sos');
 app.use('/sos', sosRoutes);
-
-// 👉 NEW Danger Zone routes
+// 👉 NEW Danger Zone routes (ADD THESE TWO LINES)
 const dangerRoutes = require('./routes/danger');
 app.use('/danger', dangerRoutes);
-
-// ✅ Keep these mounts below body/session middleware so req.body/session work
-const routeApi = require('./routes/route');
-app.use('/api/route', routeApi);
-
-const placesRoutes = require('./routes/places');
-app.use('/places', placesRoutes);
 
 // Public routes
 app.get('/', (req, res) => {
@@ -104,7 +81,6 @@ app.get('/welcome', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   res.render('welcome', { title: 'Welcome', user: req.session.user });
 });
-
 // Safe Route Finder page
 app.get('/safe-route', (req, res) => {
   if (!req.session.user) return res.redirect('/login'); // keep it behind login
@@ -127,36 +103,36 @@ app.post('/report', async (req, res) => {
   try {
     const { message, area, lat, lng } = req.body;
 
-    // Save report in DB
+  // Save report in DB
     await Report.create({ message, area, lat, lng });
 
-    // Send SOS email to emergency contact
-    const userName = req.session.user.name;
-    const emergencyEmail = req.session.user.emergencyEmail || req.session.user.emergencyContact;
-    if (emergencyEmail) {
-      await sendSOSAlert(emergencyEmail, userName, message, area);
-    }
 
-    // ALSO notify verified volunteers in this area
-    try {
-      const vols = await Volunteer.find({ area, verified: true }).lean();
-      if (vols.length) {
-        const ids = vols.map(v => v.userId);
-        const users = await mongoose.connection
-          .collection('users')
-          .find({ _id: { $in: ids } })
-          .project({ email: 1 })
-          .toArray();
+   // Send SOS email to emergency contact
+const userName = req.session.user.name;
+const emergencyEmail = req.session.user.emergencyEmail || req.session.user.emergencyContact;
+if (emergencyEmail) {
+  await sendSOSAlert(emergencyEmail, userName, message, area);
+}
 
-        for (const u of users) {
-          if (u.email) {
-            await sendSOSAlert(u.email, userName, message, area);
-          }
-        }
+// ALSO notify verified volunteers in this area
+try {
+  const vols = await Volunteer.find({ area, verified: true }).lean();
+  if (vols.length) {
+    const ids = vols.map(v => v.userId);
+    const users = await mongoose.connection.collection('users')
+      .find({ _id: { $in: ids } })
+      .project({ email: 1 })
+      .toArray();
+
+    for (const u of users) {
+      if (u.email) {
+        await sendSOSAlert(u.email, userName, message, area);
       }
-    } catch (e) {
-      console.error('Volunteer fan-out failed:', e.message);
     }
+  }
+} catch (e) {
+  console.error('Volunteer fan-out failed:', e.message);
+}
 
     res.redirect('/report-success');
   } catch (err) {
@@ -169,7 +145,7 @@ app.post('/report', async (req, res) => {
 app.get('/report-success', (req, res) => {
   res.render('report-success', {
     title: 'Report Submitted',
-    user: req.session.user,
+    user: req.session.user
   });
 });
 
@@ -184,7 +160,7 @@ app.get('/admin/reports', async (req, res) => {
     res.render('admin-reports', {
       title: 'All Area Reports',
       reports,
-      user: req.session.user,
+      user: req.session.user
     });
   } catch (err) {
     console.error('❌ Error loading admin reports:', err.message);
@@ -217,11 +193,11 @@ app.get('/my-area-reports', async (req, res) => {
   res.render('area-reports', {
     title: 'Reports in Your Area',
     reports,
-    area,
+    area
   });
 });
-
 // === Safety Check Timer CRON JOB (runs every minute) ===
+// Paste this block right ABOVE: app.listen(PORT, ...)
 const cron = require('node-cron');
 
 cron.schedule('* * * * *', async () => {
@@ -234,7 +210,7 @@ cron.schedule('* * * * *', async () => {
     for (const chk of overdue) {
       // Look up the user directly from the 'users' collection by _id
       const user = await mongoose.connection
-        .collection('users') 
+        .collection('users')        // ← if your users collection has a different name, tell me
         .findOne({ _id: chk.userId });
 
       const toEmail = user?.emergencyEmail || user?.emergencyContact;
@@ -247,14 +223,13 @@ cron.schedule('* * * * *', async () => {
         );
       }
 
-      // ALSO notify verified volunteers in the user's area
+      // ALSO notify verified volunteers in the user's area  <<< ADDED
       try {
         if (user?.area) {
           const vols = await Volunteer.find({ area: user.area, verified: true }).lean();
           if (vols.length) {
             const ids = vols.map(v => v.userId);
-            const ulist = await mongoose.connection
-              .collection('users')
+            const ulist = await mongoose.connection.collection('users')
               .find({ _id: { $in: ids } })
               .project({ email: 1 })
               .toArray();
@@ -288,9 +263,8 @@ cron.schedule('* * * * *', async () => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
-
-// (duplicate safe-route kept)
 app.get('/safe-route', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   res.render('safe-route', { title: 'Safe Route Finder' });
 });
+
