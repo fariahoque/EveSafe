@@ -153,42 +153,21 @@
   <div id="voiceToggle" title="Enable background voice SOS">Enable Voice SOS</div>
 
   <script>
-    /* ------------------ CLICK SOS (kept) ------------------ */
-    async function postSOS() {
-      try {
-        const res = await fetch('/sos?t=' + Date.now(), {
-          method: 'POST',
-          headers: { 'Accept': 'application/json' },
-          credentials: 'same-origin'
-        });
-        if (!res.ok) {
-          if (res.status === 401) alert('Your session expired. Please log in again.');
-          console.warn('SOS HTTP', res.status);
-          return;
-        }
-        const js = await res.json();
-        if (js.ok) console.log('✅ SOS sent @', new Date(js.ts).toLocaleTimeString(), js);
-        else console.warn('SOS responded not ok:', js);
-      } catch (e) {
-        console.error('❌ SOS network error:', e);
-      }
-    }
-
+    // --- Click SOS with debounce (still available)
     let sosInFlight=false,lastSOS=0;
     async function sendSOS(){
-      // small UI debounce for button only (doesn't limit voice)
-      const now=Date.now(); if(sosInFlight||now-lastSOS<2000) return;
+      const now=Date.now(); if(sosInFlight||now-lastSOS<5000) return;
       sosInFlight=true; const btn=document.getElementById('sosBtn'); const old=btn.innerText;
       btn.disabled=true; btn.innerText='Sending...';
-      try{ await postSOS(); lastSOS=now; btn.innerText='SOS Sent';
-           setTimeout(()=>{btn.innerText=old;btn.disabled=false;},1200); }
+      try{ await fetch('/sos',{method:'POST'}); lastSOS=now; btn.innerText='SOS Sent';
+           setTimeout(()=>{btn.innerText=old;btn.disabled=false;},1800); }
       catch{ btn.innerText='Failed — try again';
-             setTimeout(()=>{btn.innerText=old;btn.disabled=false;},1500); }
+             setTimeout(()=>{btn.innerText=old;btn.disabled=false;},2000); }
       finally{ sosInFlight=false; }
     }
     document.getElementById('sosBtn')?.addEventListener('click',sendSOS);
 
-    /* ------------------ DANGER BANNER ------------------ */
+    // --- Danger banner fetch
     (function(){
       const area = <%- JSON.stringify(user.area) %>;
       fetch('/danger/area?name='+encodeURIComponent(area))
@@ -204,83 +183,60 @@
         }).catch(()=>{});
     })();
 
-    /* ------------------ VOICE SOS (enable once, works repeatedly) ------------------ */
+    // ===== Background Voice SOS (enable once, auto on later) =====
+    async function postSOS(){ try{ await fetch('/sos',{method:'POST'}); }catch{} }
+    let sosCooldown=false;
+    function triggerSOS(){
+      if (sosCooldown) return;
+      sosCooldown=true; postSOS();
+      setTimeout(()=>{sosCooldown=false;}, 30000); // 30s cooldown
+    }
+
     const KEYWORDS = ['help','sos','save me','bachao','bacao','bachan','danger'];
     let recognizer, listening=false;
 
-    function startRecognizer() {
+    function startRecognizer(){
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) { console.warn('SpeechRecognition not supported'); return; }
-
-      // stop old
-      if (recognizer) { try { recognizer.stop(); } catch {} }
-
+      if(!SR) { console.warn('SpeechRecognition not supported'); return; }
       recognizer = new SR();
-      recognizer.lang = 'en-US';         // add a 2nd recognizer for 'bn-BD' if you want Bangla
+      recognizer.lang = 'en-US';
       recognizer.continuous = true;
-      recognizer.interimResults = true;  // also react to interim to be more responsive
-
-      recognizer.onresult = (e) => {
-        let phrase = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const text = e.results[i][0].transcript;
-          phrase += ' ' + text;
-        }
-        phrase = phrase.toLowerCase().trim();
-        console.log('[voice]', phrase);
-        if (KEYWORDS.some(k => phrase.includes(k))) {
-          console.log('[voice] keyword matched — sending SOS');
-          postSOS(); // no cooldown here so it can fire again later
+      recognizer.interimResults = false;
+      recognizer.onresult = (e)=>{
+        for(let i=e.resultIndex;i<e.results.length;i++){
+          if(!e.results[i].isFinal) continue;
+          const phrase = e.results[i][0].transcript.toLowerCase().trim();
+          if (KEYWORDS.some(k => phrase.includes(k))) triggerSOS();
         }
       };
-
-      recognizer.onerror = (ev) => {
-        console.warn('[voice] error:', ev.error);
-      };
-
-      recognizer.onend = () => {
-        if (listening) {
-          console.log('[voice] restarting…');
-          setTimeout(() => { try { recognizer.start(); } catch {} }, 400);
-        }
-      };
-
-      try { recognizer.start(); listening = true; console.log('[voice] started'); } catch (e) {
-        console.warn('[voice] start failed:', e.message);
-      }
+      recognizer.onerror = ()=>{};
+      recognizer.onend = ()=>{ if(listening){ try{ recognizer.start(); }catch{} } };
+      try{ recognizer.start(); listening=true; }catch{}
     }
 
-    // sticky across visibility changes
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && localStorage.getItem('voiceSOSEnabled')==='1') {
-        startRecognizer();
-      }
-    });
-
-    // Enable/disable toggle (tiny floating pill)
     const voiceToggle = document.getElementById('voiceToggle');
-    function setToggleUI(active){
+    function ui(active){
       voiceToggle.textContent = active ? 'Voice SOS: ON' : 'Enable Voice SOS';
       voiceToggle.classList.toggle('active', active);
     }
-    function enableVoice(){ localStorage.setItem('voiceSOSEnabled','1'); setToggleUI(true); startRecognizer(); }
-    function disableVoice(){ localStorage.removeItem('voiceSOSEnabled'); setToggleUI(false); listening=false; try{recognizer&&recognizer.stop();}catch{} }
+    function enableVoice(){ localStorage.setItem('voiceSOSEnabled','1'); ui(true); startRecognizer(); }
+    function disableVoice(){ localStorage.removeItem('voiceSOSEnabled'); ui(false); listening=false; try{recognizer&&recognizer.stop();}catch{} }
 
     voiceToggle.addEventListener('click', ()=>{
       if (localStorage.getItem('voiceSOSEnabled')==='1') disableVoice();
       else enableVoice();
     });
 
-    // Auto-resume if previously enabled
-    if (localStorage.getItem('voiceSOSEnabled')==='1'){ setToggleUI(true); setTimeout(startRecognizer, 300); }
-    else { setToggleUI(false); }
+    // Auto-resume if enabled previously
+    if (localStorage.getItem('voiceSOSEnabled')==='1'){ ui(true); setTimeout(startRecognizer, 300); }
+    else { ui(false); }
 
-    // Keyboard fallback: triple-press "S" in 2s
+    // Keyboard fallback: triple-press "S"
     let sCount=0, sTimer=null;
     window.addEventListener('keydown',(e)=>{
       if(e.key.toLowerCase()!=='s') return;
       sCount++; if(sCount===1) sTimer=setTimeout(()=>{sCount=0;},2000);
-      if(sCount>=3){ clearTimeout(sTimer); sCount=0; postSOS(); }
+      if(sCount>=3){ clearTimeout(sTimer); sCount=0; triggerSOS(); }
     });
   </script>
 </body>
