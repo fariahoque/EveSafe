@@ -8,11 +8,14 @@ const Report = require('./models/report');
 const sendSOSAlert = require('./mailer'); // for sending emergency emails
 require('dotenv').config();
 const mongoose = require('mongoose');
-         // (if you don’t already have it)
+
 const Volunteer = require('./models/volunteer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+app.set('trust proxy', 1);
+// your session config can stay as-is; defaults are fine for local dev
 
 // Connect to MongoDB
 connectDB();
@@ -42,12 +45,20 @@ const checkinRoutes = require('./routes/checkin');
 app.use('/checkins', checkinRoutes);
 const ratingRoutes = require('./routes/ratings');
 app.use('/ratings', ratingRoutes);
-// Volunteers routes  (ADD THESE TWO LINES)
+// Volunteers routes
 const volunteerRoutes = require('./routes/volunteers');
 app.use('/volunteers', volunteerRoutes);
 const sosRoutes = require('./routes/sos');
 app.use('/sos', sosRoutes);
+// 👉 NEW Danger Zone routes (ADD THESE TWO LINES)
+const dangerRoutes = require('./routes/danger');
+app.use('/danger', dangerRoutes);
 
+// ✅ Moved these route mounts BELOW the middleware so req.body + session work
+const routeApi = require('./routes/route');
+app.use('/api/route', routeApi);
+const placesRoutes = require('./routes/places');
+app.use('/places', placesRoutes);
 
 // Public routes
 app.get('/', (req, res) => {
@@ -71,6 +82,11 @@ app.get('/welcome', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   res.render('welcome', { title: 'Welcome', user: req.session.user });
 });
+// Safe Route Finder page
+app.get('/safe-route', (req, res) => {
+  if (!req.session.user) return res.redirect('/login'); // keep it behind login
+  res.render('safe-route', { title: 'Safe Route Finder' });
+});
 
 // Logout
 app.get('/logout', (req, res) => {
@@ -86,37 +102,37 @@ app.get('/report', (req, res) => {
 // Handle report submission
 app.post('/report', async (req, res) => {
   try {
-    const { message, area } = req.body;
+    const { message, area, lat, lng } = req.body;
 
     // Save report in DB
-    await Report.create({ message, area });
+    await Report.create({ message, area, lat, lng });
 
-   // Send SOS email to emergency contact
-const userName = req.session.user.name;
-const emergencyEmail = req.session.user.emergencyEmail || req.session.user.emergencyContact;
-if (emergencyEmail) {
-  await sendSOSAlert(emergencyEmail, userName, message, area);
-}
-
-// ALSO notify verified volunteers in this area
-try {
-  const vols = await Volunteer.find({ area, verified: true }).lean();
-  if (vols.length) {
-    const ids = vols.map(v => v.userId);
-    const users = await mongoose.connection.collection('users')
-      .find({ _id: { $in: ids } })
-      .project({ email: 1 })
-      .toArray();
-
-    for (const u of users) {
-      if (u.email) {
-        await sendSOSAlert(u.email, userName, message, area);
-      }
+    // Send SOS email to emergency contact
+    const userName = req.session.user.name;
+    const emergencyEmail = req.session.user.emergencyEmail || req.session.user.emergencyContact;
+    if (emergencyEmail) {
+      await sendSOSAlert(emergencyEmail, userName, message, area);
     }
-  }
-} catch (e) {
-  console.error('Volunteer fan-out failed:', e.message);
-}
+
+    // ALSO notify verified volunteers in this area
+    try {
+      const vols = await Volunteer.find({ area, verified: true }).lean();
+      if (vols.length) {
+        const ids = vols.map(v => v.userId);
+        const users = await mongoose.connection.collection('users')
+          .find({ _id: { $in: ids } })
+          .project({ email: 1 })
+          .toArray();
+
+        for (const u of users) {
+          if (u.email) {
+            await sendSOSAlert(u.email, userName, message, area);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Volunteer fan-out failed:', e.message);
+    }
 
     res.redirect('/report-success');
   } catch (err) {
@@ -180,6 +196,7 @@ app.get('/my-area-reports', async (req, res) => {
     area
   });
 });
+
 // === Safety Check Timer CRON JOB (runs every minute) ===
 // Paste this block right ABOVE: app.listen(PORT, ...)
 const cron = require('node-cron');
@@ -246,4 +263,10 @@ cron.schedule('* * * * *', async () => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+
+// (duplicate safe-route kept as-is below; it’s redundant but unchanged per your request)
+app.get('/safe-route', (req, res) => {
+  if (!req.session.user) return res.redirect('/login');
+  res.render('safe-route', { title: 'Safe Route Finder' });
 });
