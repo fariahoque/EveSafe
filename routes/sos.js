@@ -5,10 +5,13 @@ const router = express.Router();
 const Volunteer = require('../models/volunteer');
 const sendSOSAlert = require('../mailer');
 
-// auth guard
+// auth guard: JSON for XHR, redirect for normal nav
 function ensureAuth(req, res, next) {
-  if (!req.session || !req.session.user) return res.redirect('/login');
-  next();
+  if (req.session && req.session.user) return next();
+  if (req.get('accept')?.includes('json')) {
+    return res.status(401).json({ ok: false, reason: 'auth' });
+  }
+  return res.redirect('/login');
 }
 
 // simple health check
@@ -24,15 +27,24 @@ router.post('/', ensureAuth, async (req, res) => {
     const userName = user.name;
     const emergencyEmail = user.emergencyEmail || user.emergencyContact;
 
-    console.log('[SOS] voice trigger from', user.email, 'area:', area);
+    console.log('[SOS] trigger from', user.email, 'area:', area);
+
+    let mailedContact = false;
+    let mailedVolunteers = 0;
 
     if (emergencyEmail) {
-      await sendSOSAlert(emergencyEmail, userName, 'Emergency SOS triggered.', area || 'Unknown area');
-      console.log('[SOS] mailed emergency contact:', emergencyEmail);
+      try {
+        await sendSOSAlert(emergencyEmail, userName, 'Emergency SOS triggered.', area || 'Unknown area');
+        mailedContact = true;
+        console.log('[SOS] mailed emergency contact:', emergencyEmail);
+      } catch (e) {
+        console.error('[SOS] contact mail failed:', e.message);
+      }
     } else {
       console.log('[SOS] no emergency contact on file');
     }
 
+    // Fan-out to verified volunteers in user's area (best-effort)
     try {
       const vols = await mongoose.model('Volunteer').find({ area, verified: true }).lean();
       if (vols.length) {
@@ -42,20 +54,22 @@ router.post('/', ensureAuth, async (req, res) => {
           .project({ email: 1 })
           .toArray();
 
-        let sent = 0;
         for (const u of ulist) {
           if (u.email) {
-            await sendSOSAlert(
-              u.email,
-              userName,
-              'Emergency SOS (near you). Please check on them if possible.',
-              area || 'Unknown area'
-            );
-            console.log('[SOS] mailed volunteer:', u.email);
-            sent++;
+            try {
+              await sendSOSAlert(
+                u.email,
+                userName,
+                'Emergency SOS (near you). Please check on them if possible.',
+                area || 'Unknown area'
+              );
+              mailedVolunteers++;
+            } catch (e) {
+              console.error('[SOS] volunteer mail failed:', e.message, 'to:', u.email);
+            }
           }
         }
-        if (!sent) console.log('[SOS] volunteers found but no emails present');
+        console.log('[SOS] volunteer mails sent:', mailedVolunteers);
       } else {
         console.log('[SOS] no verified volunteers in area');
       }
@@ -63,10 +77,15 @@ router.post('/', ensureAuth, async (req, res) => {
       console.error('[SOS] volunteer fan-out failed:', e.message);
     }
 
-    return res.sendStatus(204); // no redirect (keeps mic running)
+    // JSON result (no 204) so frontend can see what happened
+    return res.json({
+      ok: true,
+      ts: Date.now(),
+      mailed: { contact: mailedContact, volunteers: mailedVolunteers }
+    });
   } catch (e) {
     console.error('❌ SOS error:', e.message);
-    return res.status(500).send('Failed to send SOS');
+    return res.status(500).json({ ok: false, error: 'Failed to send SOS' });
   }
 });
 
