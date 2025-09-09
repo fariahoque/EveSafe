@@ -9,6 +9,10 @@ const ReportSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // 👉 NEW optional coordinates
+  lat: { type: Number },
+  lng: { type: Number },
+
   createdAt: {
     type: Date,
     default: Date.now
