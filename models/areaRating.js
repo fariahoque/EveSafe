@@ -5,6 +5,10 @@ const areaRatingSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   area:   { type: String, required: true, trim: true },
   score:  { type: Number, required: true, min: 1, max: 5 },
+  // 👉 NEW optional coordinates
+  lat: { type: Number },
+  lng: { type: Number },
+
   createdAt: { type: Date, default: Date.now }
 });
 
