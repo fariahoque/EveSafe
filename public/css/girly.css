@@ -1,12 +1,13 @@
 :root{
-  --pink:#ff5fa2; 
-  --pink-600:#ff3d90; 
-  --rose:#ffe3ef; 
+  /* Updated brand colors for better contrast */
+  --pink:#AD1457;      /* Primary brand pink */
+  --pink-600:#C2185B;  /* Darker pink for hover states */
+  --rose:#FCE4EC;      /* Light background pink */
   --lav:#f7e8ff;
-  --ink:#2a2a2a; 
-  --soft:#faf7fb; 
-  --white:#fff; 
-  --shadow:0 8px 26px rgba(255, 104, 164, .18);
+  --ink:#212121;       /* Darker ink text for readability */
+  --soft:#faf7fb;
+  --white:#fff;
+  --shadow:0 8px 26px rgba(173, 20, 87, .18);
   --radius:18px;
 }
 
@@ -24,7 +25,7 @@ body {
 .container{max-width:1100px;margin:0 auto;padding:24px 18px 56px;}
 .header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;}
 .title{font-size:28px;font-weight:800;letter-spacing:.3px;color:var(--pink);}
-.subtitle{color:#6e6e6e;font-size:14px;margin-top:4px}
+.subtitle{color:#444;font-size:14px;margin-top:4px}
 .badge{background:var(--lav);color:var(--pink);padding:8px 12px;border-radius:999px;font-weight:600;font-size:13px;box-shadow:var(--shadow);}
 
 /* Danger banner */
@@ -32,7 +33,7 @@ body {
   display:none;
   background:#fff1f4;
   border:1px solid #ffc7da;
-  color:#b0004b;
+  color:#B00020; /* Dark red for better visibility */
   padding:12px 14px;
   border-radius:var(--radius);
   margin:14px 0 6px;
@@ -55,31 +56,53 @@ body {
   transition:transform .15s,box-shadow .15s;
   border:1px solid #ffd4e6;
 }
-.card:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(255,104,164,.25);}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(173,20,87,.25);}
 .card img{
   width:100%;
-  height:220px;            /* unified height */
-  object-fit:contain;      /* always show full image */
+  height:220px;
+  object-fit:contain;
   background:#fffafc;
   border-bottom:1px solid #ffd4e6;
 }
 .card-body{padding:14px;display:flex;flex-direction:column;gap:10px;flex:1;}
-.card h3{margin:0;font-size:18px;color:#333;font-weight:800;}
-.card p{margin:0;color:#555;font-size:13px;line-height:1.5;}
+.card h3{margin:0;font-size:18px;color:var(--ink);font-weight:800;}
+.card p{margin:0;color:#444;font-size:13px;line-height:1.5;}
 .actions{margin-top:auto;display:flex;gap:8px;}
 
 /* Buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;border:none;cursor:pointer;border-radius:12px;padding:10px 12px;font-weight:700;font-size:14px;text-decoration:none;}
-.btn-primary{background:var(--pink);color:#fff;} .btn-primary:hover{background:var(--pink-600);}
-.btn-secondary{background:#ffe8f3;color:var(--pink);} 
-.btn-outline{background:#fff;color:var(--pink);border:1px solid #ffc5dd;}
-.btn-sos{background:#ff2a6f;color:#fff;} .btn-sos:hover{filter:brightness(.95);}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  border:none;cursor:pointer;border-radius:12px;
+  padding:10px 12px;font-weight:700;font-size:14px;text-decoration:none;
+}
+.btn-primary{background:var(--pink);color:#fff;} 
+.btn-primary:hover{background:var(--pink-600);}
 
-/* ===== Hero banner (image only, no text overlay) ===== */
+.btn-secondary{
+  background:#ffe8f3;
+  color:var(--pink);
+  font-weight:600;
+}
+
+.btn-outline{
+  background:#fff;
+  color:var(--pink);
+  border:1px solid #ffc5dd;
+}
+
+.btn-sos{
+  background:#AD1457; /* Updated SOS color */
+  color:#fff;
+}
+.btn-sos:hover{
+  filter:brightness(.92);
+}
+
+/* Hero banner */
 .banner-hero{
   position: relative;
   width: 100%;
-  height: 260px;              /* adjust height as needed */
+  height: 260px;
   overflow: hidden;
   border-bottom-left-radius: 22px;
   border-bottom-right-radius: 22px;
@@ -91,7 +114,7 @@ body {
 .banner-hero img{
   width: 100%;
   height: 100%;
-  object-fit: cover;          /* fill banner area */
-  object-position: center 20%;/* move faces upward into view */
+  object-fit: cover;
+  object-position: center 20%;
   display:block;
 }
